@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Creator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #F5C518;
+    --dark: #0e0e0e;
+    --panel: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --muted: #888;
+    --input-bg: #111;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  .editor {
+    width: 400px;
+    min-width: 400px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 28px 22px;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+
+  .editor h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 2px;
+  }
+  .subtitle { color: var(--muted); font-size: 0.72rem; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 24px; }
+
+  .section-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 10px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  input, textarea, select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    padding: 9px 12px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 7px;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+  textarea { resize: vertical; min-height: 58px; }
+  select option { background: #222; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .item-row {
+    display: grid;
+    grid-template-columns: 1fr 52px 80px 26px;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 5px;
+    animation: fadeIn 0.2s ease;
+  }
+  .item-row input { margin-bottom: 0; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+
+  .btn-del {
+    background: none; border: none; color: #555;
+    font-size: 1.2rem; cursor: pointer; padding: 2px 6px;
+    transition: color 0.2s; line-height: 1;
+  }
+  .btn-del:hover { color: #e74c3c; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border: none; border-radius: 4px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.8rem;
+    font-weight: 600; cursor: pointer; letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); margin-top: 4px;
+  }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-primary {
+    background: var(--gold); color: #000; margin-top: 18px;
+    width: 100%; justify-content: center; font-size: 0.85rem; padding: 12px;
+  }
+  .btn-primary:hover { background: #ffd740; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(245,197,24,0.3); }
+
+  .logo-upload-box {
+    border: 1.5px dashed var(--border);
+    border-radius: 6px; padding: 14px;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.2s; margin-bottom: 8px;
+    position: relative; overflow: hidden;
+  }
+  .logo-upload-box:hover { border-color: var(--gold); }
+  .logo-upload-box input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; padding: 0; }
+  #logo-hint { color: var(--muted); font-size: 0.74rem; }
+  #logo-preview { max-height: 58px; max-width: 150px; display: none; margin: 0 auto; }
+
+  /* PREVIEW */
+  .preview {
+    flex: 1; background: #e8e7e2;
+    display: flex; flex-direction: column;
+    align-items: center; padding: 36px 20px;
+    overflow-y: auto; max-height: 100vh;
+  }
+
+  .preview-tools {
+    display: flex; gap: 10px;
+    margin-bottom: 18px; align-self: flex-end;
+  }
+  .preview-tools button {
+    background: #fff; border: 1px solid #ccc;
+    color: #333; padding: 7px 16px;
+    font-size: 0.78rem; border-radius: 4px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    font-weight: 500; transition: all 0.15s;
+  }
+  .preview-tools button:hover { background: #111; color: var(--gold); border-color: #111; }
+
+  /* INVOICE CARD */
+  #invoice-card {
+    background: #fff; width: 660px;
+    min-height: 820px;
+    box-shadow: 0 8px 60px rgba(0,0,0,0.2);
+    font-family: 'DM Sans', sans-serif;
+    color: #1a1a1a; border-radius: 2px; overflow: hidden;
+  }
+
+  .inv-accent-bar { height: 4px; background: linear-gradient(90deg,#F5C518,#ffd740,#F5C518); }
+
+  .inv-header {
+    background: #111; padding: 32px 38px 26px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .inv-logo-area img { max-height: 76px; max-width: 190px; object-fit: contain; }
+  .inv-logo-placeholder { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: #F5C518; letter-spacing: 3px; }
+
+  .inv-title-block { text-align: right; }
+  .inv-title-block .word-invoice {
+    font-family: 'Bebas Neue', sans-serif; font-size: 3rem;
+    color: #fff; letter-spacing: 6px; line-height: 1;
+  }
+  .inv-number { font-family: 'DM Mono', monospace; font-size: 0.73rem; color: #F5C518; letter-spacing: 2px; margin-top: 6px; }
+  .inv-date-text { font-size: 0.7rem; color: #aaa; letter-spacing: 1px; margin-top: 2px; }
+
+  .inv-body { padding: 34px 38px; }
+
+  .inv-from-to { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 32px; }
+  .inv-from-to .lbl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: #aaa; margin-bottom: 5px; }
+  .inv-from-to .company { font-weight: 600; font-size: 0.93rem; margin-bottom: 2px; }
+  .inv-from-to .info { font-size: 0.78rem; color: #555; line-height: 1.65; white-space: pre-line; }
+
+  .inv-table { width: 100%; border-collapse: collapse; }
+  .inv-table thead tr { background: #111; }
+  .inv-table thead th {
+    padding: 10px 13px; font-size: 0.62rem;
+    text-transform: uppercase; letter-spacing: 2px;
+    font-weight: 500; color: #fff; text-align: left;
+  }
+  .inv-table thead th:nth-child(n+3) { text-align: right; }
+  .inv-table tbody tr { border-bottom: 1px solid #f0f0f0; }
+  .inv-table tbody td { padding: 12px 13px; font-size: 0.82rem; color: #222; }
+  .inv-table tbody td:nth-child(n+3) { text-align: right; color: #444; }
+
+  .inv-table tfoot td { padding: 8px 13px; font-size: 0.82rem; }
+  .inv-table tfoot .row-sub td { color: #888; }
+  .inv-table tfoot .row-total { border-top: 2px solid #F5C518; background: #fffde7; }
+  .inv-table tfoot .row-total td { font-weight: 700; font-size: 1rem; }
+
+  .inv-footer { background: #f7f6f1; padding: 22px 38px; margin-top: 28px; border-top: 1px solid #e5e4dc; }
+  .inv-footer .notes-lbl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: #aaa; margin-bottom: 5px; }
+  .inv-footer .notes-txt { font-size: 0.8rem; color: #555; white-space: pre-line; }
+
+  .inv-bottom-bar { height: 4px; background: linear-gradient(90deg,#F5C518,#ffd740,#F5C518); }
+
+  @media print {
+    body { background: white; }
+    .editor, .preview-tools { display: none !important; }
+    .preview { background: white; padding: 0; }
+    #invoice-card { box-shadow: none; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="editor">
+  <h1>INVOICE</h1>
+  <div class="subtitle">Creator Studio</div>
+
+  <div class="section-label">Logo</div>
+  <div class="logo-upload-box">
+    <img id="logo-preview" alt="Logo">
+    <span id="logo-hint">&#128247; Click to upload your logo</span>
+    <input type="file" accept="image/*" onchange="handleLogo(event)">
+  </div>
+
+  <div class="section-label">Your Business</div>
+  <input type="text" id="from-company" placeholder="Your company name" oninput="render()" value="Maximum Media">
+  <textarea id="from-info" placeholder="Address, city, country..." oninput="render()" rows="2">U.S.A</textarea>
+
+  <div class="section-label">Bill To</div>
+  <input type="text" id="to-name" placeholder="Client name" oninput="render()" value="Kasey Strait">
+  <textarea id="to-info" placeholder="Company, address..." oninput="render()" rows="2">VP Roomaven LLC / S19019 Booth KBIS
+U.S.A</textarea>
+
+  <div class="section-label">Details</div>
+  <div class="row2">
+    <input type="text" id="inv-number" placeholder="Invoice #" oninput="render()" value="INV-001">
+    <input type="date" id="inv-date" oninput="render()">
+  </div>
+
+  <div class="section-label">Line Items</div>
+  <div id="items-container"></div>
+  <button class="btn btn-ghost" onclick="addItem()">+ Add item</button>
+
+  <div class="section-label">Notes</div>
+  <textarea id="notes" placeholder="Payment instructions, terms..." oninput="render()" rows="2">Venmo: @maximumtampagroup</textarea>
+
+  <button class="btn btn-primary" onclick="window.print()">&#8595; Download / Print PDF</button>
+</div>
+
+<div class="preview">
+  <div class="preview-tools">
+    <button onclick="window.print()">&#128438; Print</button>
+  </div>
+
+  <div id="invoice-card">
+    <div class="inv-accent-bar"></div>
+    <div class="inv-header">
+      <div class="inv-logo-area" id="inv-logo-area">
+        <div class="inv-logo-placeholder" id="inv-logo-text">MAXIMUM MEDIA</div>
+      </div>
+      <div class="inv-title-block">
+        <div class="word-invoice">INVOICE</div>
+        <div class="inv-number" id="inv-num-disp"># INV-001</div>
+        <div class="inv-date-text" id="inv-date-disp"></div>
+      </div>
+    </div>
+
+    <div class="inv-body">
+      <div class="inv-from-to">
+        <div>
+          <div class="lbl">From</div>
+          <div class="company" id="inv-from-company">Maximum Media</div>
+          <div class="info" id="inv-from-info">U.S.A</div>
+        </div>
+        <div>
+          <div class="lbl">Bill To</div>
+          <div class="company" id="inv-to-name">Kasey Strait</div>
+          <div class="info" id="inv-to-info">VP Roomaven LLC / S19019 Booth KBIS
+U.S.A</div>
+        </div>
+      </div>
+
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="inv-tbody"></tbody>
+        <tfoot>
+          <tr class="row-sub">
+            <td colspan="4" style="text-align:right;font-size:0.72rem;letter-spacing:1px;text-transform:uppercase">Sub Total</td>
+            <td style="text-align:right;font-family:'DM Mono',monospace" id="inv-subtotal">$0.00</td>
+          </tr>
+          <tr class="row-total">
+            <td colspan="4" style="text-align:right;letter-spacing:2px;text-transform:uppercase;font-size:0.72rem">TOTAL</td>
+            <td style="text-align:right;font-family:'DM Mono',monospace;font-size:1.05rem" id="inv-total">$0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="inv-footer">
+      <div class="notes-lbl">Notes</div>
+      <div class="notes-txt" id="inv-notes">Venmo: @maximumtampagroup</div>
+    </div>
+    <div class="inv-bottom-bar"></div>
+  </div>
+</div>
+
+<script>
+  let items = [{ desc: 'Photos', qty: 1, price: 350 }];
+  let logoUrl = null;
+
+  document.getElementById('inv-date').value = new Date().toISOString().split('T')[0];
+
+  function handleLogo(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      logoUrl = ev.target.result;
+      document.getElementById('logo-preview').src = logoUrl;
+      document.getElementById('logo-preview').style.display = 'block';
+      document.getElementById('logo-hint').style.display = 'none';
+      render();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function addItem() {
+    items.push({ desc: '', qty: 1, price: 0 });
+    renderEditor();
+    render();
+  }
+
+  function removeItem(i) {
+    items.splice(i, 1);
+    renderEditor();
+    render();
+  }
+
+  function renderEditor() {
+    document.getElementById('items-container').innerHTML = items.map((it, i) => `
+      <div class="item-row">
+        <input type="text" placeholder="Description" value="${it.desc.replace(/"/g,'&quot;')}" oninput="items[${i}].desc=this.value;render()">
+        <input type="number" placeholder="Qty" value="${it.qty}" min="1" oninput="items[${i}].qty=+this.value||1;render()">
+        <input type="number" placeholder="$0.00" value="${it.price}" min="0" step="0.01" oninput="items[${i}].price=+this.value||0;render()">
+        <button class="btn-del" onclick="removeItem(${i})">&#215;</button>
+      </div>
+    `).join('');
+  }
+
+  function fmt(n) {
+    return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtDate(s) {
+    if (!s) return '';
+    const d = new Date(s + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function render() {
+    const fromCompany = document.getElementById('from-company').value || 'Your Company';
+    document.getElementById('inv-from-company').textContent = fromCompany;
+    document.getElementById('inv-from-info').textContent = document.getElementById('from-info').value;
+    document.getElementById('inv-to-name').textContent = document.getElementById('to-name').value;
+    document.getElementById('inv-to-info').textContent = document.getElementById('to-info').value;
+    document.getElementById('inv-num-disp').textContent = '# ' + (document.getElementById('inv-number').value || 'INV-001');
+    document.getElementById('inv-date-disp').textContent = fmtDate(document.getElementById('inv-date').value);
+    document.getElementById('inv-notes').textContent = document.getElementById('notes').value;
+
+    const area = document.getElementById('inv-logo-area');
+    if (logoUrl) {
+      area.innerHTML = `<img src="${logoUrl}" style="max-height:76px;max-width:190px;object-fit:contain;">`;
+    } else {
+      area.innerHTML = `<div class="inv-logo-placeholder">${fromCompany.toUpperCase()}</div>`;
+    }
+
+    document.getElementById('inv-tbody').innerHTML = items.map((it, i) => `
+      <tr>
+        <td style="color:#bbb;font-size:0.72rem;font-family:'DM Mono',monospace">${String(i+1).padStart(2,'0')}</td>
+        <td>${it.desc || '&#8212;'}</td>
+        <td style="text-align:right">${it.qty}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace">${fmt(it.price)}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:600">${fmt(it.qty * it.price)}</td>
+      </tr>
+    `).join('');
+
+    const sub = items.reduce((s, it) => s + it.qty * it.price, 0);
+    document.getElementById('inv-subtotal').textContent = fmt(sub);
+    document.getElementById('inv-total').textContent = fmt(sub);
+  }
+
+  renderEditor();
+  render();
+</script>
+</body>
+</html>
